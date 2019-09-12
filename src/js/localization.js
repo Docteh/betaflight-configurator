@@ -6,7 +6,7 @@
 
 var i18n = {}
 
-const languagesAvailables = ['ca', 'de', 'en', 'es', 'fr', 'gl', 'hr', 'id', 'it', 'ja', 'ko', 'lv', 'pt', 'ru', 'sv', 'zh_CN'];
+const languagesAvailables = ['ca', 'de', 'en', 'es', 'fr', 'gl', 'hr', 'id', 'it', 'ja', 'ko', 'lv', 'pt', 'ru', 'sv', 'zh_CN', 'ach'];
 
 /**
  * Functions that depend on the i18n framework
@@ -14,6 +14,10 @@ const languagesAvailables = ['ca', 'de', 'en', 'es', 'fr', 'gl', 'hr', 'id', 'it
 i18n.init = function(cb) {
 
     getStoredUserLocale(function(userLanguage){
+        if(typeof _jipt === "object") {
+            console.log('Detected crowdin jipt, using ach as language');
+            userLanguage = 'ach';
+        }
 
         i18next
             .use(i18nextXHRBackend)
@@ -40,19 +44,29 @@ i18n.init = function(cb) {
     });
     // This function should do the same things that the i18n.localizePage function below does.
     i18next.on('languageChanged', function (newLang) {
-      var translate = function(messageID) {
-        return i18n.getMessage(messageID);
-      };
-      i18n.localizePage(true);
-      updateStatusBarVersion();
+        var translate = function(messageID) {
+            return i18n.getMessage(messageID);
+        };
+        i18n.localizePage(true);
+        updateStatusBarVersion();
     });
 }
 
 i18n.changeLanguage = function(languageSelected) {
-  ConfigStorage.set({'userLanguageSelect': languageSelected});
-  i18next.changeLanguage(getValidLocale(languageSelected));
-  i18n.selectedLanguage = languageSelected;
-  GUI.log(i18n.getMessage('language_changed'));
+    if(typeof _jipt === "object") {
+        //GUI.log('Detected Crowdin In-Context, restart to switch to ' + languageSelected);
+        GUI.log(i18n.getMessage('language_changed'));
+        ConfigStorage.set({'userLanguageSelect': languageSelected});
+        window.location.href = "/main.html";
+    } else {
+        ConfigStorage.set({'userLanguageSelect': languageSelected});
+        i18next.changeLanguage(getValidLocale(languageSelected));
+        i18n.selectedLanguage = languageSelected;
+        GUI.log(i18n.getMessage('language_changed'));
+        if (languageSelected == 'ach') {
+            window.location.href = "/main_crowdin.html";
+        }
+    }
 }
 i18n.getMessage = function(messageID, parameters) {
 

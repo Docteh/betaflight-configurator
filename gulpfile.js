@@ -75,7 +75,7 @@ const getChangesetId = gulp.series(getHash, writeChangesetId);
 gulp.task('get-changeset-id', getChangesetId);
 
 // dist_yarn MUST be done after dist_src
-var distBuild = gulp.series(dist_src, dist_changelog, dist_yarn, dist_locale, dist_libraries, dist_resources, getChangesetId);
+var distBuild = gulp.series(dist_src, dist_changelog, dist_yarn, dist_locale, dist_libraries, dist_resources, getChangesetId, writeOtherMain, grabLang);
 var distRebuild = gulp.series(clean_dist, distBuild);
 gulp.task('dist', distRebuild);
 
@@ -487,6 +487,22 @@ function writeChangesetId() {
     return versionJson
         .pipe(source('version.json'))
         .pipe(gulp.dest(DIST_DIR))
+}
+
+function writeOtherMain() {
+    var outputFile = new stream.Readable;
+    outputFile.push(fs.readFileSync('src/main.html', 'utf8').replace('<!--custommarker-->', '    <script type="text/javascript" src="./js/crowdin_in_context.js"></script>    <script type="text/javascript" src="https://cdn.crowdin.com/jipt/jipt.js"></script>'));
+    outputFile.push(null);
+    return outputFile
+        .pipe(source('main_crowdin.html'))
+        .pipe(gulp.dest(DIST_DIR))
+}
+
+var remoteSrc = require('gulp-remote-src');
+function grabLang() {
+  return remoteSrc(['locales/ach/messages.json'], {
+    base: 'https://raw.githubusercontent.com/betaflight/betaflight-configurator/l10n_master/'
+  }).pipe(gulp.dest(DIST_DIR))
 }
 
 function start_debug(done) {
