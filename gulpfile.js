@@ -27,6 +27,7 @@ const os = require('os');
 const git = require('gulp-git');
 const source = require('vinyl-source-stream');
 const stream = require('stream');
+const webpack = require('webpack');
 
 const DIST_DIR = './dist/';
 const APPS_DIR = './apps/';
@@ -74,8 +75,8 @@ gulp.task('clean-cache', clean_cache);
 const getChangesetId = gulp.series(getHash, writeChangesetId);
 gulp.task('get-changeset-id', getChangesetId);
 
-// dist_yarn MUST be done after dist_src
-var distBuild = gulp.series(dist_src, dist_changelog, dist_yarn, dist_locale, dist_libraries, dist_resources, getChangesetId);
+// dist_webpack MUST be done after dist_src
+var distBuild = gulp.series(dist_src, dist_changelog, dist_webpack, dist_locale, dist_libraries, dist_resources, getChangesetId);
 var distRebuild = gulp.series(clean_dist, distBuild);
 gulp.task('dist', distRebuild);
 
@@ -273,6 +274,21 @@ function dist_libraries() {
 function dist_resources() {
     return gulp.src(['./resources/**/*', '!./resources/osd/**/*.png'], { base: '.'})
         .pipe(gulp.dest(DIST_DIR));
+}
+
+function dist_webpack() {
+    return new Promise((resolve, reject) => {
+        const webpackConfig = require('./webpack.config');
+        webpack(webpackConfig, (err, stats) => {
+            if (err) {
+                return reject(JSON.stringify(err))
+            }
+            if (stats.hasErrors()) {
+                return reject(new Error(stats.compilation.errors.join('\n')))
+            }
+            resolve()
+        })
+    })
 }
 
 // Create runable app directories in ./apps
